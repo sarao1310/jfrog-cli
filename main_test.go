@@ -75,7 +75,6 @@ func setupIntegrationTests() {
 		InitXrayTests()
 	}
 	if *tests.TestAccess {
-		InitAccessTests()
 		InitArtifactoryTests()
 	}
 	if *tests.TestTransfer {
@@ -132,7 +131,7 @@ func createJfrogHomeConfig(t *testing.T, encryptPassword bool) {
 		assert.NoError(t, err)
 	}
 	*tests.JfrogUrl = utils.AddTrailingSlashIfNeeded(*tests.JfrogUrl)
-	err = tests.NewJfrogCli(execMain, "jfrog config", credentials).Exec("add", "default", "--interactive=false", "--artifactory-url="+*tests.JfrogUrl+tests.ArtifactoryEndpoint, "--xray-url="+*tests.JfrogUrl+tests.XrayEndpoint, "--enc-password="+strconv.FormatBool(encryptPassword))
+	err = tests.NewJfrogCli(execMain, "jfrog config", credentials).Exec("add", "default", "--interactive=false", "--url="+*tests.JfrogUrl, "--enc-password="+strconv.FormatBool(encryptPassword))
 	assert.NoError(t, err)
 }
 

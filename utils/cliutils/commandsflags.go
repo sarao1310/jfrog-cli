@@ -2,6 +2,7 @@ package cliutils
 
 import (
 	"fmt"
+	"github.com/jfrog/jfrog-cli-core/v2/xray/commands/offlineupdate"
 	"sort"
 	"strconv"
 
@@ -81,6 +82,7 @@ const (
 	GroupAddUsers          = "group-add-users"
 	GroupDelete            = "group-delete"
 	TransferConfig         = "transfer-config"
+	TransferConfigMerge    = "transfer-config-merge"
 	passphrase             = "passphrase"
 
 	// Distribution's Command Keys
@@ -419,13 +421,13 @@ const (
 	xrUrl = "xr-url"
 
 	// Unique offline-update flags
-	licenseId        = "license-id"
-	from             = "from"
-	to               = "to"
-	Version          = "version"
-	target           = "target"
-	DBSyncV3         = "dbsyncv3"
-	PeriodicDBSyncV3 = "periodic"
+	licenseId = "license-id"
+	from      = "from"
+	to        = "to"
+	Version   = "version"
+	target    = "target"
+	Stream    = "stream"
+	Periodic  = "periodic"
 
 	// Unique scan flags
 	scanPrefix          = "scan-"
@@ -494,8 +496,24 @@ const (
 	PreChecks           = "prechecks"
 
 	// Transfer flags
-	IncludeRepos = "include-repos"
-	ExcludeRepos = "exclude-repos"
+	IncludeRepos    = "include-repos"
+	ExcludeRepos    = "exclude-repos"
+	IncludeProjects = "include-projects"
+	ExcludeProjects = "exclude-projects"
+
+	// *** JFrog Pipelines Commands' flags ***
+	// Base flags
+	branch       = "branch"
+	Trigger      = "trigger"
+	pipelineName = "pipeline-name"
+	name         = "name"
+	Validate     = "validate"
+	Resources    = "resources"
+	monitor      = "monitor"
+	repository   = "repository"
+	singleBranch = "single-branch"
+	Sync         = "sync"
+	SyncStatus   = "sync-status"
 
 	// *** TransferInstall Commands' flags ***
 	installPluginPrefix  = "install-"
@@ -1209,6 +1227,10 @@ var flagsMap = map[string]cli.Flag{
 		Name:  licenseId,
 		Usage: "[Mandatory] Xray license ID.` `",
 	},
+	Stream: cli.StringFlag{
+		Name:  Stream,
+		Usage: fmt.Sprintf("[Optional] Xray DBSync V3 stream, Possible values are: %s.` `", offlineupdate.NewValidStreams().GetValidStreamsString()),
+	},
 	from: cli.StringFlag{
 		Name:  from,
 		Usage: "[Optional] From update date in YYYY-MM-DD format.` `",
@@ -1225,13 +1247,9 @@ var flagsMap = map[string]cli.Flag{
 		Name:  target,
 		Usage: "[Default: ./] Path for downloaded update files.` `",
 	},
-	DBSyncV3: cli.BoolFlag{
-		Name:  DBSyncV3,
-		Usage: "[Default: false] Set to true to use Xray DBSync V3. ` `",
-	},
-	PeriodicDBSyncV3: cli.BoolFlag{
-		Name:  PeriodicDBSyncV3,
-		Usage: fmt.Sprintf("[Default: false] Set to true to get the Xray DBSync V3 Periodic Package (Use with %s flag). ` `", DBSyncV3),
+	Periodic: cli.BoolFlag{
+		Name:  Periodic,
+		Usage: fmt.Sprintf("[Default: false] Set to true to get the Xray DBSync V3 Periodic Package (Use with %s flag). ` `", Stream),
 	},
 	useWrapperAudit: cli.BoolTFlag{
 		Name:  UseWrapper,
@@ -1430,6 +1448,14 @@ var flagsMap = map[string]cli.Flag{
 		Name:  ExcludeRepos,
 		Usage: "[Optional] A list of semicolon separated repositories to exclude from the transfer. You can use wildcards to specify patterns for the repositories' names.` `",
 	},
+	IncludeProjects: cli.StringFlag{
+		Name:  IncludeProjects,
+		Usage: "[Optional] A list of semicolon separated JFrog Project keys to include in the transfer. You can use wildcards to specify patterns for the JFrog Project keys.` `",
+	},
+	ExcludeProjects: cli.StringFlag{
+		Name:  ExcludeProjects,
+		Usage: "[Optional] A list of semicolon separated JFrog Projects to exclude from the transfer. You can use wildcards to specify patterns for the project keys.` `",
+	},
 	IgnoreState: cli.BoolFlag{
 		Name:  IgnoreState,
 		Usage: "[Default: false] Set to true to ignore the saved state from previous transfer-files operations.` `",
@@ -1441,6 +1467,26 @@ var flagsMap = map[string]cli.Flag{
 	transferFilesStatus: cli.BoolFlag{
 		Name:  Status,
 		Usage: "[Default: false] Set to true to show the status of the transfer-files command currently in progress.` `",
+	},
+	branch: cli.StringFlag{
+		Name:  branch,
+		Usage: "[Optional] Branch name to filter.` `",
+	},
+	pipelineName: cli.StringFlag{
+		Name:  pipelineName,
+		Usage: "[Optional] Pipeline name to filter.` `",
+	},
+	monitor: cli.BoolFlag{
+		Name:  monitor,
+		Usage: "[Default: false] Monitor pipeline status.` `",
+	},
+	repository: cli.StringFlag{
+		Name:  repository,
+		Usage: "[Optional] Repository name to filter resource.` `",
+	},
+	singleBranch: cli.BoolFlag{
+		Name:  singleBranch,
+		Usage: "[Default: false] Single branch to filter multi branches and single branch pipelines sources.` `",
 	},
 	Stop: cli.BoolFlag{
 		Name:  Stop,
@@ -1644,6 +1690,9 @@ var commandFlags = map[string][]string{
 	TransferConfig: {
 		Force, Verbose, IncludeRepos, ExcludeRepos, WorkingDir, PreChecks,
 	},
+	TransferConfigMerge: {
+		IncludeRepos, ExcludeRepos, IncludeProjects, ExcludeProjects,
+	},
 	Ping: {
 		url, user, password, accessToken, sshPassphrase, sshKeyPath, serverId, ClientCertPath,
 		ClientCertKeyPath, InsecureTls,
@@ -1739,7 +1788,7 @@ var commandFlags = map[string][]string{
 	},
 	// Xray's commands
 	OfflineUpdate: {
-		licenseId, from, to, Version, target, DBSyncV3, PeriodicDBSyncV3,
+		licenseId, from, to, Version, target, Stream, Periodic,
 	},
 	XrCurl: {
 		serverId,
@@ -1808,6 +1857,25 @@ var commandFlags = map[string][]string{
 		setupFormat,
 	},
 	Intro: {},
+	// Pipelines commands
+	Status: {
+		branch, serverId, pipelineName, monitor, singleBranch,
+	},
+	Trigger: {
+		serverId, singleBranch,
+	},
+	Validate: {
+		Resources, serverId,
+	},
+	Version: {
+		serverId,
+	},
+	Sync: {
+		serverId,
+	},
+	SyncStatus: {
+		branch, repository, serverId,
+	},
 }
 
 func GetCommandFlags(cmd string) []cli.Flag {
